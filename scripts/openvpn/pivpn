@@ -13,61 +13,61 @@ fi
 function makeOVPNFunc {
     shift
     $SUDO /opt/pivpn/makeOVPN.sh "$@"
-    exit 1
+    exit 0
 }
 
 function listClientsFunc {
-    $SUDO /opt/pivpn/clientStat.sh
-    exit 1
+    shift
+    $SUDO /opt/pivpn/clientStat.sh "$@"
+    exit 0
 }
 
 function listOVPNFunc {
     $SUDO /opt/pivpn/listOVPN.sh
-    exit 1
+    exit 0
 }
 
 function debugFunc {
-    noUFW=$(cat /etc/pivpn/NO_UFW)
     echo "::: Generating Debug Output"
     $SUDO /opt/pivpn/pivpnDebug.sh | tee /tmp/debug.txt
     echo "::: "
     echo "::: Debug output completed above."
     echo "::: Copy saved to /tmp/debug.txt"
     echo "::: "
-    if [[ ${noUFW} -eq 1 ]]; then
-        IPTABLES_FIX=`$SUDO iptables -t nat -L -n -v | grep -c 'MASQUERADE.*10.8.0.0\/24'`
-        $SUDO iptables -t nat -L -n -v | grep -q 'MASQUERADE.*10.8.0.0\/24'
-        if [ $? -ne 0 ]; then
-            IPTABLES_FIX=2
-        fi
-        if [[ ${IPTABLES_FIX} -gt 1 ]]; then
-            echo "::: We detected some potential issues with your iptables."
-            read -p "::: Would you like us to try to fix this? [y/n]: " -n 1 -r
-            echo
-            if [[ ${REPLY} =~ ^[Yy]$ ]]; then
-                $SUDO /opt/pivpn/fix_iptables.sh
-            fi
-            echo "::: Attempt at fix completed."
-            echo "::: Run 'pivpn debug' again to see if we detect issues."
-        fi
-    fi
-    exit 1
+    exit 0
 }
 
 function removeOVPNFunc {
     shift
     $SUDO /opt/pivpn/removeOVPN.sh "$@"
-    exit 1
+    exit 0
 }
 
 function uninstallFunc {
     $SUDO /opt/pivpn/uninstall.sh
-    exit 1
+    exit 0
 }
 
 function versionFunc {
     printf "\e[1mVersion 1.9\e[0m\n"
 }
+
+function update {
+
+    shift
+    $SUDO /opt/pivpn/update.sh "$@"
+    exit 0
+
+
+}
+
+function backup {
+
+    $SUDO /opt/pivpn/backup.sh
+    exit 0
+
+}
+
 
 function helpFunc {
     echo "::: Control all PiVPN specific functions!"
@@ -82,7 +82,9 @@ function helpFunc {
     echo ":::  -r, revoke           Revoke a client ovpn profile"
     echo ":::  -h, help             Show this help dialog"
     echo ":::  -u, uninstall        Uninstall PiVPN from your system!"
-    exit 1
+    echo ":::  -up, update          Updates PiVPN Scripts"
+    echo ":::  -bk, backup          Backup Openvpn and ovpns dir"
+    exit 0
 }
 
 if [[ $# = 0 ]]; then
@@ -92,12 +94,14 @@ fi
 # Handle redirecting to specific functions based on arguments
 case "$1" in
 "-a" | "add"                ) makeOVPNFunc "$@";;
-"-c" | "clients"            ) listClientsFunc;;
+"-c" | "clients"            ) listClientsFunc "$@";;
 "-d" | "debug"              ) debugFunc;;
 "-l" | "list"               ) listOVPNFunc;;
 "-r" | "revoke"             ) removeOVPNFunc "$@";;
 "-h" | "help"               ) helpFunc;;
 "-u" | "uninstall"          ) uninstallFunc;;
 "-v"                        ) versionFunc;;
+"-up"| "update"             ) update "$@" ;;
+"-bk"| "backup"             ) backup;;
 *                           ) helpFunc;;
 esac
